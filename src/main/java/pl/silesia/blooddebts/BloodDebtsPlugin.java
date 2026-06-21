@@ -32,7 +32,6 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
     private NamespacedKey debtKey;
     private NamespacedKey killerKey;
     private final String PREFIX = ChatColor.DARK_RED + "☠ " + ChatColor.RED + "[BloodDebts] " + ChatColor.RESET;
-    private final AttributeModifier.UUID_FIXED_BLOOD_DEBT = java.util.UUID.fromString("11111111-2222-3333-4444-555555555555"); // Stałe UUID dla modyfikatora HP
 
     @Override
     public void onEnable() {
@@ -104,13 +103,14 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         AttributeInstance maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
         
         if (maxHealth != null) {
+            // Usunięcie starych modyfikatorów o tej samej nazwie klucza
             maxHealth.getModifiers().forEach(mod -> {
-                if (mod.getName().equals("blood_debt_hp")) {
+                if (mod.getKey().getKey().equals("blood_debt_hp")) {
                     maxHealth.removeModifier(mod);
                 }
             });
             if (debtLevel > 0) {
-                // Nowoczesny konstruktor AttributeModifier dopasowany do Java 21 / 1.21 API
+                // Poprawny dla 1.21 konstruktor wykorzystujący NamespacedKey zamiast przestarzałego UUID
                 AttributeModifier modifier = new AttributeModifier(
                         new NamespacedKey(this, "blood_debt_hp"),
                         -2.0 * debtLevel,
