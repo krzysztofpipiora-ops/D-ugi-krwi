@@ -10,6 +10,7 @@ import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -25,9 +26,11 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public final class BloodDebtsPlugin extends JavaPlugin implements Listener, CommandExecutor {
+public final class BloodDebtsPlugin extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
 
     private NamespacedKey debtKey;
     private NamespacedKey killerKey;
@@ -39,30 +42,125 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         this.killerKey = new NamespacedKey(this, "last_killer_uuid");
         
         getServer().getPluginManager().registerEvents(this, this);
-        if (getCommand("handlarz") != null) {
-            getCommand("handlarz").setExecutor(this);
+        
+        if (getCommand("handlarz") != null) getCommand("handlarz").setExecutor(this);
+        if (getCommand("bd") != null) {
+            getCommand("bd").setExecutor(this);
+            getCommand("bd").setTabCompleter(this);
         }
         
-        getLogger().info("Plugin BloodDebts zostal pomyslnie wlaczony!");
+        getLogger().info("Plugin BloodDebts zostal pomyslnie wlaczony z komendami admina!");
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Ta komenda jest tylko dla graczy!");
-            return true;
-        }
-        Player player = (Player) sender;
+        // Obsługa komendy /handlarz
         if (command.getName().equalsIgnoreCase("handlarz")) {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage("Ta komenda jest tylko dla graczy!");
+                return true;
+            }
+            Player player = (Player) sender;
             if (player.hasPermission("blooddebts.admin")) {
                 openDeathMerchantGui(player);
             } else {
-                player.sendMessage(PREFIX + ChatColor.RED + "Nie masz uprawnień do otwarcia tego sklepu komendą.");
+                player.sendMessage(PREFIX + ChatColor.RED + "Nie masz uprawnien do otwarcia tego sklepu komenda.");
             }
             return true;
         }
+
+        // Obsługa głównej komendy /bd (BloodDebts Admin)
+        if (command.getName().equalsIgnoreCase("bd")) {
+            if (!sender.hasPermission("blooddebts.admin")) {
+                sender.sendMessage(PREFIX + ChatColor.RED + "Brak uprawnien (blooddebts.admin)!");
+                return true;
+            }
+
+            if (args.length == 0) {
+                sender.sendMessage(ChatColor.GOLD + "=== System BloodDebts ===");
+                sender.sendMessage(ChatColor.YELLOW + "/bd givekey [gracz] [ilosc]" + ChatColor.GRAY + " - Daje Skazony Klucz");
+                sender.sendMessage(ChatColor.YELLOW + "/bd givetoken [gracz] [ilosc]" + ChatColor.GRAY + " - Daje Token Dominacji");
+                sender.sendMessage(ChatColor.YELLOW + "/bd clear [gracz]" + ChatColor.GRAY + " - Czysci dlug gracza");
+                return true;
+            }
+
+            String subCommand = args[0].toLowerCase();
+
+            if (subCommand.equals("givekey") || subCommand.equals("givetoken")) {
+                Player target = (sender instanceof Player) ? (Player) sender : null;
+                int amount = 1;
+
+                if (args.length > 1) {
+                    target = Bukkit.getPlayer(args[1]);
+                    if (target == null) {
+                        sender.sendMessage(PREFIX + ChatColor.RED + "Nie znaleziono gracza " + args[1]);
+                        return true;
+                    }
+                }
+                if (args.length > 2) {
+                    try {
+                        amount = Integer.parseInt(args[2]);
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage(PREFIX + ChatColor.RED + "Ilosc musi byc liczba!");
+                        return true;
+                    }
+                }
+
+                if (target == null) {
+                    sender.sendMessage(PREFIX + ChatColor.RED + "Musisz podac nick gracza, jesli uzywasz komendy z konsoli.");
+                    return true;
+                }
+
+                ItemStack item = subCommand.equals("givekey") ? createOminousKey() : createDominanceToken();
+                item.setAmount(amount);
+                target.getInventory().addItem(item);
+                
+                String itemName = subCommand.equals("givekey") ? "Skazony Klucz" : "Token Dominacji";
+                sender.sendMessage(PREFIX + ChatColor.GREEN + "Dano " + amount + "x " + itemName + " dla " + target.getName());
+                target.sendMessage(PREFIX + ChatColor.GOLD + "Otrzymales " + amount + "x " + itemName + " od administratora.");
+                return true;
+            }
+
+            if (subCommand.equals("clear")) {
+                if (args.length < 2) {
+                    sender.sendMessage(PREFIX + ChatColor.RED + "Poprawne uzycie: /bd clear [gracz]");
+                    return true;
+                }
+                Player target = Bukkit.getPlayer(args[1]);
+                if (target == null) {
+                    sender.sendMessage(PREFIX + ChatColor.RED + "Nie znaleziono takiego gracza.");
+                    return true;
+                }
+                removeDebt(target);
+                target.getPersistentDataContainer().remove(killerKey);
+                sender.sendMessage(PREFIX + ChatColor.GREEN + "Pomyslnie wyczyszczono dlug krwi dla " + target.getName());
+                target.sendMessage(PREFIX + ChatColor.GREEN + "Twoj dlug zostal odgornie usuniety przez admina.");
+                return true;
+            }
+        }
         return false;
     }
+
+    // TabCompleter - Podpowiedzi komend w grze
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (command.getName().equalsIgnoreCase("bd") && sender.hasPermission("blooddebts.admin")) {
+            if (args.length == 1) {
+                return Arrays.asList("givekey", "givetoken", "clear").stream()
+                        .filter(s -> s.startsWith(args[0].toLowerCase())).collect(Collectors.toList());
+            }
+            if (args.length == 2) {
+                return Bukkit.getOnlinePlayers().stream().map(Player::getName)
+                        .filter(s -> s.toLowerCase().startsWith(args[1].toLowerCase())).collect(Collectors.toList());
+            }
+            if (args.length == 3 && (args[0].equalsIgnoreCase("givekey") || args[0].equalsIgnoreCase("givetoken"))) {
+                return Arrays.asList("1", "5", "10", "64");
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    // --- DOPASOWANA DO 1.21 MECHANIKA PRZEKLEŃSTW ---
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
@@ -74,8 +172,8 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         String lastKillerUUIDStr = victim.getPersistentDataContainer().get(killerKey, PersistentDataType.STRING);
         if (lastKillerUUIDStr != null && lastKillerUUIDStr.equals(killer.getUniqueId().toString())) {
             removeDebt(victim);
-            victim.sendMessage(PREFIX + ChatColor.GREEN + "Zemściłeś się! Twój Dług Krwi został wymazany, a siły powróciły.");
-            killer.sendMessage(PREFIX + ChatColor.GOLD + "Twoja ofiara dokonała zemsty. Straciłeś dominację nad nią.");
+            victim.sendMessage(PREFIX + ChatColor.GREEN + "Zemsciles sie! Twoj Dlug Krwi zostal wymazany, a sily powrocily.");
+            killer.sendMessage(PREFIX + ChatColor.GOLD + "Twoja ofiara dokonala zemsty. Straciles dominacje nad nia.");
             victim.getPersistentDataContainer().remove(killerKey);
             return;
         }
@@ -85,12 +183,12 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             victim.getPersistentDataContainer().set(debtKey, PersistentDataType.INTEGER, currentDebt + 1);
             victim.getPersistentDataContainer().set(killerKey, PersistentDataType.STRING, killer.getUniqueId().toString());
             applyDebtDebuffs(victim);
-            victim.sendMessage(PREFIX + ChatColor.DARK_RED + "Zostałeś naznaczony Krwawym Przekleństwem przez " + killer.getName() + "!");
+            victim.sendMessage(PREFIX + ChatColor.DARK_RED + "Zostales naznaczony Krwawym Przekleństwem przez " + killer.getName() + "!");
         }
 
         killer.getInventory().addItem(createDominanceToken());
         killer.getInventory().addItem(createOminousKey());
-        killer.sendMessage(PREFIX + ChatColor.GOLD + "Pokonałeś gracza " + victim.getName() + ". Otrzymujesz Token Dominacji oraz Skażony Klucz!");
+        killer.sendMessage(PREFIX + ChatColor.GOLD + "Pokonales gracza " + victim.getName() + ". Otrzymujesz Token Dominacji oraz Skazony Klucz!");
     }
 
     @EventHandler
@@ -103,14 +201,12 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         AttributeInstance maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
         
         if (maxHealth != null) {
-            // Usunięcie starych modyfikatorów o tej samej nazwie klucza
             maxHealth.getModifiers().forEach(mod -> {
                 if (mod.getKey().getKey().equals("blood_debt_hp")) {
                     maxHealth.removeModifier(mod);
                 }
             });
             if (debtLevel > 0) {
-                // Poprawny dla 1.21 konstruktor wykorzystujący NamespacedKey zamiast przestarzałego UUID
                 AttributeModifier modifier = new AttributeModifier(
                         new NamespacedKey(this, "blood_debt_hp"),
                         -2.0 * debtLevel,
@@ -139,33 +235,35 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         applyDebtDebuffs(player);
     }
 
-    private ItemStack createDominanceToken() {
+    public ItemStack createDominanceToken() {
         ItemStack token = new ItemStack(Material.GHAST_TEAR, 1);
         ItemMeta meta = token.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "Token Dominacji");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Dowód triumfu nad innym graczem.");
-            lore.add(ChatColor.GOLD + "Wymień go u Wędrownego Handlarza Śmiercią.");
+            lore.add(ChatColor.GRAY + "Dowod triumfu nad innym graczem.");
+            lore.add(ChatColor.GOLD + "Wymien go u Wedrownego Handlarza Smiercia.");
             meta.setLore(lore);
             token.setItemMeta(meta);
         }
         return token;
     }
 
-    private ItemStack createOminousKey() {
+    public ItemStack createOminousKey() {
         ItemStack key = new ItemStack(Material.OMINOUS_TRIAL_KEY, 1);
         ItemMeta meta = key.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.RED + "" + ChatColor.BOLD + "Skażony Klucz (Ominous Key)");
+            meta.setDisplayName(ChatColor.RED + "" + ChatColor.BOLD + "Skazony Klucz (Ominous Key)");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Przepełniony mroczną energią poległego.");
+            lore.add(ChatColor.GRAY + "Przepełniony mroczna energia poleglego.");
             lore.add(ChatColor.DARK_RED + "Otwiera Nexus Vault na spawnie.");
             meta.setLore(lore);
             key.setItemMeta(meta);
         }
         return key;
     }
+
+    // --- NEXUS VAULT & HANDLARZ INTERAKCJE ---
 
     @EventHandler
     public void onVaultInteract(PlayerInteractEvent event) {
@@ -176,7 +274,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             ItemStack itemInHand = player.getInventory().getItemInMainHand();
 
             if (itemInHand.getType() == Material.OMINOUS_TRIAL_KEY && itemInHand.hasItemMeta() 
-                    && itemInHand.getItemMeta().getDisplayName().contains("Skażony Klucz")) {
+                    && itemInHand.getItemMeta().getDisplayName().contains("Skazony Klucz")) {
                 
                 event.setCancelled(true);
                 itemInHand.setAmount(itemInHand.getAmount() - 1);
@@ -205,11 +303,11 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
     }
     
     public void openDeathMerchantGui(Player player) {
-        Inventory gui = Bukkit.createInventory(null, 9, ChatColor.DARK_RED + "Wędrowny Handlarz Śmiercią");
+        Inventory gui = Bukkit.createInventory(null, 9, ChatColor.DARK_RED + "Wedrowny Handlarz Smiercia");
 
         gui.setItem(1, createShopItem(Material.NETHERITE_INGOT, 3, "Sztabka Netheritu"));
         gui.setItem(3, createShopItem(Material.WIND_CHARGE, 1, "Wind Charges x16", 16));
-        gui.setItem(5, createShopItem(Material.GOLDEN_APPLE, 2, "Złote Jabłko x4", 4));
+        gui.setItem(5, createShopItem(Material.GOLDEN_APPLE, 2, "Zlotowe Jablko x4", 4));
         gui.setItem(7, createShopItem(Material.OBSIDIAN, 1, "Obsydian x32", 32));
 
         player.openInventory(gui);
@@ -221,7 +319,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         if (meta != null) {
             meta.setDisplayName(ChatColor.GOLD + name);
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.RED + "Koszt: " + cost + " Token(ów) Dominacji");
+            lore.add(ChatColor.RED + "Koszt: " + cost + " Token(ow) Dominacji");
             meta.setLore(lore);
             item.setItemMeta(meta);
         }
@@ -234,7 +332,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
 
     @EventHandler
     public void onGuiClick(InventoryClickEvent event) {
-        if (!event.getView().getTitle().equals(ChatColor.DARK_RED + "Wędrowny Handlarz Śmiercią")) return;
+        if (!event.getView().getTitle().equals(ChatColor.DARK_RED + "Wedrowny Handlarz Smiercia")) return;
         event.setCancelled(true);
 
         if (event.getCurrentItem() == null || !event.getCurrentItem().hasItemMeta()) return;
@@ -258,7 +356,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             player.getInventory().addItem(reward);
             player.sendMessage(PREFIX + ChatColor.GREEN + "Zakupiono przedmiot!");
         } else if (cost > 0) {
-            player.sendMessage(PREFIX + ChatColor.RED + "Nie masz wystarczającej liczby Tokenów Dominacji!");
+            player.sendMessage(PREFIX + ChatColor.RED + "Nie masz wystarczajacej liczby Tokenow Dominacji!");
         }
     }
 
