@@ -9,3 +9,7 @@ commands:
     description: Otwiera menu Wedrownego Handlarza Smiercia.
     permission: blooddebts.admin
     usage: /handlarz
+  bd:
+    description: Glowna komenda administracyjna dla pluginu BloodDebts.
+    permission: blooddebts.admin
+    usage: /bd [givekey/givetoken/clear] [gracz] [ilosc]
