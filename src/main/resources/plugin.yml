@@ -2,13 +2,8 @@ name: BloodDebts
 version: 1.0
 main: pl.silesia.blooddebts.BloodDebtsPlugin
 api-version: 1.21
-authors: [GitHubCI]
-description: System Dlugow Krwi i Dominacji na wersje 1.21.
 commands:
   handlarz:
     description: Otwiera menu Wedrownego Handlarza Smiercia.
-    usage: /handlarz
   bd:
     description: Glowna komenda administracyjna dla pluginu BloodDebts.
-    permission: blooddebts.admin
-    usage: /bd [givekey/givetoken/getsb/clear]
