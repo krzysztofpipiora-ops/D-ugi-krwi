@@ -48,28 +48,29 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         
         getServer().getPluginManager().registerEvents(this, this);
         
-        if (getCommand("handlarz") != null) getCommand("handlarz").setExecutor(this);
+        // POPRAWKA: Pewna rejestracja komend dla tego egzekutora
+        if (getCommand("handlarz") != null) {
+            getCommand("handlarz").setExecutor(this);
+        }
         if (getCommand("bd") != null) {
             getCommand("bd").setExecutor(this);
             getCommand("bd").setTabCompleter(this);
         }
         
-        getLogger().info("Plugin BloodDebts v3 (Skarbiec w EQ) wlaczony!");
+        getLogger().info("Plugin BloodDebts v3.1 (Fix komendy /handlarz) wlaczony!");
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // POPRAWKA: Naprawiona logika dostępu do sklepu
         if (command.getName().equalsIgnoreCase("handlarz")) {
             if (!(sender instanceof Player)) {
                 sender.sendMessage("Ta komenda jest tylko dla graczy!");
                 return true;
             }
             Player player = (Player) sender;
-            if (player.hasPermission("blooddebts.admin")) {
-                openDeathMerchantGui(player);
-            } else {
-                player.sendMessage(PREFIX + ChatColor.RED + "Nie masz uprawnien do otwarcia tego sklepu komenda.");
-            }
+            // Usunięto restrykcję blooddebts.admin - teraz każdy gracz może otworzyć menu
+            openDeathMerchantGui(player);
             return true;
         }
 
@@ -372,7 +373,6 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         return item;
     }
 
-    // BRAKUJĄCE PRZECIĄŻENIE METODY DLA ILOŚCI = 1
     private ItemStack createShopItem(Material mat, int cost, String name) {
         return createShopItem(mat, cost, name, 1);
     }
