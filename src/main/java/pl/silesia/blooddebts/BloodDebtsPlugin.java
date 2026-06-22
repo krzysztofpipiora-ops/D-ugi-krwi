@@ -44,11 +44,8 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         this.debtKey = new NamespacedKey(this, "blood_debt_count");
         this.killerKey = new NamespacedKey(this, "last_killer_uuid");
         
-        // USUNIĘTO: saveDefaultConfig() - to powodowało crash na serwerze z braku pliku config.yml
-        
         getServer().getPluginManager().registerEvents(this, this);
         
-        // Sprawdzenie i sztywne przypisanie komend
         if (getCommand("handlarz") != null) {
             getCommand("handlarz").setExecutor(this);
         }
@@ -57,7 +54,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             getCommand("bd").setTabCompleter(this);
         }
         
-        getLogger().info("Plugin BloodDebts v3.4 (Naprawiono start serwera) zostal pomyslnie wlaczony!");
+        getLogger().info("Plugin BloodDebts v3.5 (Usunieto Elytre) gotowy!");
     }
 
     @Override
@@ -353,9 +350,9 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
 
         gui.setItem(18, createShopItem(Material.CROSSBOW, 2, "Zabojcza Kusza"));
         gui.setItem(19, createShopItem(Material.TNT, 1, "TNT x8", 8));
-        gui.setItem(20, createShopItem(Material.ELYTRA, 8, "Skrzydla Elytra"));
-        gui.setItem(21, createShopItem(Material.FIREWORK_ROCKET, 1, "Fajerwerki x16", 16));
-        gui.setItem(22, createShopItem(Material.SHULKER_SHELL, 2, "Skorupa Shulkera x2", 2));
+        // POPRAWKA: Usunięto Elytrę ze slotu 20 i przesunięto tutaj pozostałe itemy, aby nie było dziur
+        gui.setItem(20, createShopItem(Material.FIREWORK_ROCKET, 1, "Fajerwerki x16", 16));
+        gui.setItem(21, createShopItem(Material.SHULKER_SHELL, 2, "Skorupa Shulkera x2", 2));
 
         player.openInventory(gui);
     }
