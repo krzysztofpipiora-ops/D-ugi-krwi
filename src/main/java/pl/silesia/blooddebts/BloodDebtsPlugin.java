@@ -48,7 +48,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         
         getServer().getPluginManager().registerEvents(this, this);
         
-        // POPRAWKA: Pewna rejestracja komend dla tego egzekutora
+        // Sztywne przypisanie executorów
         if (getCommand("handlarz") != null) {
             getCommand("handlarz").setExecutor(this);
         }
@@ -57,26 +57,26 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             getCommand("bd").setTabCompleter(this);
         }
         
-        getLogger().info("Plugin BloodDebts v3.1 (Fix komendy /handlarz) wlaczony!");
+        getLogger().info("Plugin BloodDebts v3.3 Gotowy!");
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        // POPRAWKA: Naprawiona logika dostępu do sklepu
+        // Obsługa /handlarz
         if (command.getName().equalsIgnoreCase("handlarz")) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage("Ta komenda jest tylko dla graczy!");
+                sender.sendMessage("Ta komenda jest przeznaczona wylacznie dla graczy!");
                 return true;
             }
             Player player = (Player) sender;
-            // Usunięto restrykcję blooddebts.admin - teraz każdy gracz może otworzyć menu
             openDeathMerchantGui(player);
             return true;
         }
 
+        // Obsługa /bd
         if (command.getName().equalsIgnoreCase("bd")) {
             if (!sender.hasPermission("blooddebts.admin")) {
-                sender.sendMessage(PREFIX + ChatColor.RED + "Brak uprawnien (blooddebts.admin)!");
+                sender.sendMessage(PREFIX + ChatColor.RED + "Nie posiadasz uprawnienia (blooddebts.admin)!");
                 return true;
             }
 
@@ -84,8 +84,8 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
                 sender.sendMessage(ChatColor.GOLD + "=== System BloodDebts ===");
                 sender.sendMessage(ChatColor.YELLOW + "/bd givekey [gracz] [ilosc]" + ChatColor.GRAY + " - Daje Skazony Klucz");
                 sender.sendMessage(ChatColor.YELLOW + "/bd givetoken [gracz] [ilosc]" + ChatColor.GRAY + " - Daje Token Dominacji");
-                sender.sendMessage(ChatColor.YELLOW + "/bd getsb" + ChatColor.GRAY + " - Daje przedmio SKAZONEGO SKARBCA do EQ");
-                sender.sendMessage(ChatColor.YELLOW + "/bd clear [gracz]" + ChatColor.GRAY + " - Czysci dlug gracza");
+                sender.sendMessage(ChatColor.YELLOW + "/bd getsb" + ChatColor.GRAY + " - Daje Skazony Skarbiec do EQ");
+                sender.sendMessage(ChatColor.YELLOW + "/bd clear [gracz]" + ChatColor.GRAY + " - Czysci dlug krwi gracza");
                 return true;
             }
 
@@ -93,12 +93,12 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
 
             if (subCommand.equals("getsb")) {
                 if (!(sender instanceof Player)) {
-                    sender.sendMessage("Tylko gracz moze odebrac skarbiec do ekwipunku!");
+                    sender.sendMessage("Tylko gracz moze uzyc tej podkomendy!");
                     return true;
                 }
                 Player player = (Player) sender;
                 player.getInventory().addItem(createCorruptedVaultItem());
-                player.sendMessage(PREFIX + ChatColor.GREEN + "Otrzymales Skazony Skarbiec! Postaw go, aby go aktywowac.");
+                player.sendMessage(PREFIX + ChatColor.GREEN + "Otrzymales Skazony Skarbiec! Postaw go na ziemi, aby go zarejestrowac.");
                 return true;
             }
 
@@ -109,7 +109,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
                 if (args.length > 1) {
                     target = Bukkit.getPlayer(args[1]);
                     if (target == null) {
-                        sender.sendMessage(PREFIX + ChatColor.RED + "Nie znaleziono gracza " + args[1]);
+                        sender.sendMessage(PREFIX + ChatColor.RED + "Nie znaleziono podanego gracza.");
                         return true;
                     }
                 }
@@ -117,13 +117,13 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
                     try {
                         amount = Integer.parseInt(args[2]);
                     } catch (NumberFormatException e) {
-                        sender.sendMessage(PREFIX + ChatColor.RED + "Ilosc musi byc liczba!");
+                        sender.sendMessage(PREFIX + ChatColor.RED + "Wprowadzona ilosc musi byc cyfra!");
                         return true;
                     }
                 }
 
                 if (target == null) {
-                    sender.sendMessage(PREFIX + ChatColor.RED + "Musisz podac nick gracza, jesli uzywasz komendy z konsoli.");
+                    sender.sendMessage(PREFIX + ChatColor.RED + "Musisz sprecyzowac gracza docelowego.");
                     return true;
                 }
 
@@ -132,28 +132,28 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
                 target.getInventory().addItem(item);
                 
                 String itemName = subCommand.equals("givekey") ? "Skazony Klucz" : "Token Dominacji";
-                sender.sendMessage(PREFIX + ChatColor.GREEN + "Dano " + amount + "x " + itemName + " dla " + target.getName());
-                target.sendMessage(PREFIX + ChatColor.GOLD + "Otrzymales " + amount + "x " + itemName + " od administratora.");
+                sender.sendMessage(PREFIX + ChatColor.GREEN + "Przyznano " + amount + "x " + itemName + " dla " + target.getName());
+                target.sendMessage(PREFIX + ChatColor.GOLD + "Otrzymales " + amount + "x " + itemName + " od administracji.");
                 return true;
             }
 
             if (subCommand.equals("clear")) {
                 if (args.length < 2) {
-                    sender.sendMessage(PREFIX + ChatColor.RED + "Poprawne uzycie: /bd clear [gracz]");
+                    sender.sendMessage(PREFIX + ChatColor.RED + "Uzyj: /bd clear [gracz]");
                     return true;
                 }
                 Player target = Bukkit.getPlayer(args[1]);
                 if (target == null) {
-                    sender.sendMessage(PREFIX + ChatColor.RED + "Nie znaleziono takiego gracza.");
+                    sender.sendMessage(PREFIX + ChatColor.RED + "Gracz jest offline.");
                     return true;
                 }
                 removeDebt(target);
                 target.getPersistentDataContainer().remove(killerKey);
-                sender.sendMessage(PREFIX + ChatColor.GREEN + "Pomyslnie wyczyszczono dlug krwi dla " + target.getName());
+                sender.sendMessage(PREFIX + ChatColor.GREEN + "Dlug krwi gracza " + target.getName() + " zostal pomyslnie wyczyszczony.");
                 return true;
             }
         }
-        return false;
+        return true;
     }
 
     @Override
@@ -183,7 +183,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             getConfig().set("corrupted_vault.z", loc.getBlockZ());
             saveConfig();
             
-            event.getPlayer().sendMessage(PREFIX + ChatColor.DARK_RED + "Skazony Skarbiec zostal pomyslnie postawiony i aktywowany w tym miejscu!");
+            event.getPlayer().sendMessage(PREFIX + ChatColor.DARK_RED + "Skazony Skarbiec zostal aktywowany w tej lokalizacji!");
         }
     }
 
@@ -197,8 +197,8 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         String lastKillerUUIDStr = victim.getPersistentDataContainer().get(killerKey, PersistentDataType.STRING);
         if (lastKillerUUIDStr != null && lastKillerUUIDStr.equals(killer.getUniqueId().toString())) {
             removeDebt(victim);
-            victim.sendMessage(PREFIX + ChatColor.GREEN + "Zemsciles sie! Twor Dlug Krwi zostal wymazany.");
-            killer.sendMessage(PREFIX + ChatColor.GOLD + "Twoja ofiara dokonala zemsty. Straciles dominacje.");
+            victim.sendMessage(PREFIX + ChatColor.GREEN + "Wymazales swoj Dlug Krwi poprzez odwet!");
+            killer.sendMessage(PREFIX + ChatColor.GOLD + "Ofiara dokonala zemsty. Straciles status dominacji.");
             victim.getPersistentDataContainer().remove(killerKey);
             return;
         }
@@ -208,7 +208,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             victim.getPersistentDataContainer().set(debtKey, PersistentDataType.INTEGER, currentDebt + 1);
             victim.getPersistentDataContainer().set(killerKey, PersistentDataType.STRING, killer.getUniqueId().toString());
             applyDebtDebuffs(victim);
-            victim.sendMessage(PREFIX + ChatColor.DARK_RED + "Zostales naznaczony Krwawym Przekleństwem przez " + killer.getName() + "!");
+            victim.sendMessage(PREFIX + ChatColor.DARK_RED + "Zostales naznaczony klatwa przez gracza " + killer.getName() + "!");
         }
 
         killer.getInventory().addItem(createDominanceToken());
@@ -260,7 +260,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         ItemMeta meta = vault.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.DARK_RED + "" + ChatColor.BOLD + "Skazony Skarbiec");
-            meta.setLore(Arrays.asList(ChatColor.GRAY + "Postaw go w centralnym miejscu spawnu.", ChatColor.RED + "Bedzie otwierany Skazonymi Kluczami."));
+            meta.setLore(Arrays.asList(ChatColor.GRAY + "Postaw go na spawnie.", ChatColor.RED + "Wymaga Skazonych Kluczy."));
             vault.setItemMeta(meta);
         }
         return vault;
@@ -271,7 +271,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         ItemMeta meta = token.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "Token Dominacji");
-            meta.setLore(Arrays.asList(ChatColor.GRAY + "Dowod triumfu nad innym graczem.", ChatColor.GOLD + "Wymien go u Wedrownego Handlarza Smiercia."));
+            meta.setLore(Arrays.asList(ChatColor.GRAY + "Dowod zwyciestwa.", ChatColor.GOLD + "Wymien go u Handlarza."));
             token.setItemMeta(meta);
         }
         return token;
@@ -282,7 +282,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         ItemMeta meta = key.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.RED + "" + ChatColor.BOLD + "Skazony Klucz (Ominous Key)");
-            meta.setLore(Arrays.asList(ChatColor.GRAY + "Mroczna energia poleglego.", ChatColor.DARK_RED + "Otwiera SKAZONY SKARBIEC na spawnie."));
+            meta.setLore(Arrays.asList(ChatColor.GRAY + "Klucz poleglego.", ChatColor.DARK_RED + "Otwiera Skazony Skarbiec."));
             key.setItemMeta(meta);
         }
         return key;
@@ -319,7 +319,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             dropNexusLoot(loc.add(0, 1, 0));
         } else {
             event.setCancelled(true);
-            player.sendMessage(PREFIX + ChatColor.RED + "Ten skarbiec jest skazony. Wymaga Skazonego Klucza!");
+            player.sendMessage(PREFIX + ChatColor.RED + "Ten skarbiec wymaga Skazonego Klucza!");
         }
     }
 
