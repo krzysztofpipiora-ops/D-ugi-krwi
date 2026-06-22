@@ -44,11 +44,11 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         this.debtKey = new NamespacedKey(this, "blood_debt_count");
         this.killerKey = new NamespacedKey(this, "last_killer_uuid");
         
-        saveDefaultConfig();
+        // USUNIĘTO: saveDefaultConfig() - to powodowało crash na serwerze z braku pliku config.yml
         
         getServer().getPluginManager().registerEvents(this, this);
         
-        // Sztywne przypisanie executorów
+        // Sprawdzenie i sztywne przypisanie komend
         if (getCommand("handlarz") != null) {
             getCommand("handlarz").setExecutor(this);
         }
@@ -57,12 +57,11 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             getCommand("bd").setTabCompleter(this);
         }
         
-        getLogger().info("Plugin BloodDebts v3.3 Gotowy!");
+        getLogger().info("Plugin BloodDebts v3.4 (Naprawiono start serwera) zostal pomyslnie wlaczony!");
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        // Obsługa /handlarz
         if (command.getName().equalsIgnoreCase("handlarz")) {
             if (!(sender instanceof Player)) {
                 sender.sendMessage("Ta komenda jest przeznaczona wylacznie dla graczy!");
@@ -73,7 +72,6 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             return true;
         }
 
-        // Obsługa /bd
         if (command.getName().equalsIgnoreCase("bd")) {
             if (!sender.hasPermission("blooddebts.admin")) {
                 sender.sendMessage(PREFIX + ChatColor.RED + "Nie posiadasz uprawnienia (blooddebts.admin)!");
