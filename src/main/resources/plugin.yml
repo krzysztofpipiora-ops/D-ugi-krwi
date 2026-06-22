@@ -12,4 +12,4 @@ commands:
   bd:
     description: Glowna komenda administracyjna dla pluginu BloodDebts.
     permission: blooddebts.admin
-    usage: /bd [givekey/givetoken/clear] [gracz] [ilosc]
+    usage: /bd [givekey/givetoken/getsb/clear]
