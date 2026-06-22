@@ -90,7 +90,6 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
 
             String subCommand = args[0].toLowerCase();
 
-            // NOWA KOMENDA - DAJE SKARBIEC DO EQ
             if (subCommand.equals("getsb")) {
                 if (!(sender instanceof Player)) {
                     sender.sendMessage("Tylko gracz moze odebrac skarbiec do ekwipunku!");
@@ -171,7 +170,6 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         return new ArrayList<>();
     }
 
-    // --- AUTOMATYCZNA AKTYWACJA PO POSTAWIENIU BLOKU ---
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
         ItemStack item = event.getItemInHand();
@@ -188,7 +186,6 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         }
     }
 
-    // --- MECHANIKA ZABÓJSTW I DEBUFFÓW ---
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player victim = event.getEntity();
@@ -199,8 +196,8 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         String lastKillerUUIDStr = victim.getPersistentDataContainer().get(killerKey, PersistentDataType.STRING);
         if (lastKillerUUIDStr != null && lastKillerUUIDStr.equals(killer.getUniqueId().toString())) {
             removeDebt(victim);
-            victim.sendMessage(PREFIX + ChatColor.GREEN + "Zemsciles sie! Twor Dług Krwi został wymazany.");
-            killer.sendMessage(PREFIX + ChatColor.GOLD + "Twoja ofiara dokonała zemsty. Straciłeś dominację.");
+            victim.sendMessage(PREFIX + ChatColor.GREEN + "Zemsciles sie! Twor Dlug Krwi zostal wymazany.");
+            killer.sendMessage(PREFIX + ChatColor.GOLD + "Twoja ofiara dokonala zemsty. Straciles dominacje.");
             victim.getPersistentDataContainer().remove(killerKey);
             return;
         }
@@ -210,7 +207,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             victim.getPersistentDataContainer().set(debtKey, PersistentDataType.INTEGER, currentDebt + 1);
             victim.getPersistentDataContainer().set(killerKey, PersistentDataType.STRING, killer.getUniqueId().toString());
             applyDebtDebuffs(victim);
-            victim.sendMessage(PREFIX + ChatColor.DARK_RED + "Zostałeś naznaczony Krwawym Przekleństwem przez " + killer.getName() + "!");
+            victim.sendMessage(PREFIX + ChatColor.DARK_RED + "Zostales naznaczony Krwawym Przekleństwem przez " + killer.getName() + "!");
         }
 
         killer.getInventory().addItem(createDominanceToken());
@@ -257,7 +254,6 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         applyDebtDebuffs(player);
     }
 
-    // --- GENERATORY PRZEDMIOTÓW ---
     private ItemStack createCorruptedVaultItem() {
         ItemStack vault = new ItemStack(Material.VAULT, 1);
         ItemMeta meta = vault.getItemMeta();
@@ -274,7 +270,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         ItemMeta meta = token.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "Token Dominacji");
-            meta.setLore(Arrays.asList(ChatColor.GRAY + "Dowód triumfu nad innym graczem.", ChatColor.GOLD + "Wymień go u Wędrownego Handlarza Śmiercią."));
+            meta.setLore(Arrays.asList(ChatColor.GRAY + "Dowod triumfu nad innym graczem.", ChatColor.GOLD + "Wymien go u Wedrownego Handlarza Smiercia."));
             token.setItemMeta(meta);
         }
         return token;
@@ -284,14 +280,13 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         ItemStack key = new ItemStack(Material.OMINOUS_TRIAL_KEY, 1);
         ItemMeta meta = key.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.RED + "" + ChatColor.BOLD + "Skażony Klucz (Ominous Key)");
-            meta.setLore(Arrays.asList(ChatColor.GRAY + "Mroczna energia poległego.", ChatColor.DARK_RED + "Otwiera SKAŻONY SKARBIEC na spawnie."));
+            meta.setDisplayName(ChatColor.RED + "" + ChatColor.BOLD + "Skazony Klucz (Ominous Key)");
+            meta.setLore(Arrays.asList(ChatColor.GRAY + "Mroczna energia poleglego.", ChatColor.DARK_RED + "Otwiera SKAZONY SKARBIEC na spawnie."));
             key.setItemMeta(meta);
         }
         return key;
     }
 
-    // --- SKARBIEC INTERAKCJA ---
     @EventHandler
     public void onVaultInteract(PlayerInteractEvent event) {
         if (event.getClickedBlock() == null || event.getClickedBlock().getType() != Material.VAULT) return;
@@ -314,16 +309,16 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         ItemStack itemInHand = player.getInventory().getItemInMainHand();
 
         if (itemInHand.getType() == Material.OMINOUS_TRIAL_KEY && itemInHand.hasItemMeta() 
-                && itemInHand.getItemMeta().getDisplayName().contains("Skażony Klucz")) {
+                && itemInHand.getItemMeta().getDisplayName().contains("Skazony Klucz")) {
             
             event.setCancelled(true);
             itemInHand.setAmount(itemInHand.getAmount() - 1);
             
-            player.sendMessage(PREFIX + ChatColor.GREEN + "Otwierasz Skażony Skarbiec...");
+            player.sendMessage(PREFIX + ChatColor.GREEN + "Otwierasz Skazony Skarbiec...");
             dropNexusLoot(loc.add(0, 1, 0));
         } else {
             event.setCancelled(true);
-            player.sendMessage(PREFIX + ChatColor.RED + "Ten skarbiec jest skażony. Wymaga Skażonego Klucza!");
+            player.sendMessage(PREFIX + ChatColor.RED + "Ten skarbiec jest skazony. Wymaga Skazonego Klucza!");
         }
     }
 
@@ -339,27 +334,27 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         loc.getWorld().dropItemNaturally(loc, reward);
     }
     
-    // --- SKLEP (18 ITEMÓW) ---
     public void openDeathMerchantGui(Player player) {
-        Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_RED + "Wędrowny Handlarz Śmiercią");
+        Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_RED + "Wedrowny Handlarz Smiercia");
 
         gui.setItem(0, createShopItem(Material.NETHERITE_INGOT, 2, "Sztabka Netheritu")); 
         gui.setItem(1, createShopItem(Material.DIAMOND, 1, "Diamenty x4", 4));
         gui.setItem(2, createShopItem(Material.NETHERITE_UPGRADE_SMITHING_TEMPLATE, 3, "Szablon Ulepszenia Netheritu"));
-        gui.setItem(3, createShopItem(Material.ANCIENT_DEBRIS, 1, "Starożytne Odłamki x2", 2));
+        gui.setItem(3, createShopItem(Material.ANCIENT_DEBRIS, 1, "Starozytne Odlamki x2", 2));
         gui.setItem(4, createShopItem(Material.EXPERIENCE_BOTTLE, 1, "Butelki z PD x32", 32));
         gui.setItem(5, createShopItem(Material.OBSIDIAN, 1, "Obsydian x32", 32));
-        gui.setItem(6, createShopItem(Material.CRYING_OBSIDIAN, 1, "Płaczący Obsydian x8", 8));
+        gui.setItem(6, createShopItem(Material.CRYING_OBSIDIAN, 1, "Placzacy Obsydian x8", 8));
 
         gui.setItem(9, createShopItem(Material.WIND_CHARGE, 1, "Wind Charges x16", 16));
-        gui.setItem(10, createShopItem(Material.ENDER_PEARL, 1, "Perły Endu x8", 8));
-        gui.setItem(11, createShopItem(Material.GOLDEN_APPLE, 1, "Złote Jabłko x4", 4));
-        gui.setItem(12, createShopItem(Material.ARROW, 1, "Strzały x64", 64));
-        gui.setItem(13, createShopItem(Material.BREEZE_ROD, 2, "Pałeczki Breeze x3", 3));
+        gui.setItem(10, createShopItem(Material.ENDER_PEARL, 1, "Perly Endu x8", 8));
+        gui.setItem(11, createShopItem(Material.GOLDEN_APPLE, 1, "Zlote Jablko x4", 4));
+        gui.setItem(12, createShopItem(Material.POTION, 2, "Mikstura Sily II"));
+        gui.setItem(13, createShopItem(Material.ARROW, 1, "Strzaly x64", 64));
+        gui.setItem(14, createShopItem(Material.BREEZE_ROD, 2, "Paleczki Breeze x3", 3));
 
-        gui.setItem(18, createShopItem(Material.CROSSBOW, 2, "Zabójcza Kusza"));
+        gui.setItem(18, createShopItem(Material.CROSSBOW, 2, "Zabojcza Kusza"));
         gui.setItem(19, createShopItem(Material.TNT, 1, "TNT x8", 8));
-        gui.setItem(20, createShopItem(Material.ELYTRA, 8, "Skrzydła Elytra"));
+        gui.setItem(20, createShopItem(Material.ELYTRA, 8, "Skrzydla Elytra"));
         gui.setItem(21, createShopItem(Material.FIREWORK_ROCKET, 1, "Fajerwerki x16", 16));
         gui.setItem(22, createShopItem(Material.SHULKER_SHELL, 2, "Skorupa Shulkera x2", 2));
 
@@ -371,15 +366,20 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.GOLD + name);
-            meta.setLore(Arrays.asList(ChatColor.RED + "Koszt: " + cost + " Token(ów) Dominacji"));
+            meta.setLore(Arrays.asList(ChatColor.RED + "Koszt: " + cost + " Token(ow) Dominacji"));
             item.setItemMeta(meta);
         }
         return item;
     }
 
+    // BRAKUJĄCE PRZECIĄŻENIE METODY DLA ILOŚCI = 1
+    private ItemStack createShopItem(Material mat, int cost, String name) {
+        return createShopItem(mat, cost, name, 1);
+    }
+
     @EventHandler
     public void onGuiClick(InventoryClickEvent event) {
-        if (!event.getView().getTitle().equals(ChatColor.DARK_RED + "Wędrowny Handlarz Śmiercią")) return;
+        if (!event.getView().getTitle().equals(ChatColor.DARK_RED + "Wedrowny Handlarz Smiercia")) return;
         event.setCancelled(true);
 
         if (event.getCurrentItem() == null || !event.getCurrentItem().hasItemMeta()) return;
@@ -403,7 +403,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             player.getInventory().addItem(reward);
             player.sendMessage(PREFIX + ChatColor.GREEN + "Zakupiono przedmiot!");
         } else if (cost > 0) {
-            player.sendMessage(PREFIX + ChatColor.RED + "Nie masz wystarczającej liczby Tokenów Dominacji!");
+            player.sendMessage(PREFIX + ChatColor.RED + "Nie masz wystarczajacej liczby Tokenow Dominacji!");
         }
     }
 
