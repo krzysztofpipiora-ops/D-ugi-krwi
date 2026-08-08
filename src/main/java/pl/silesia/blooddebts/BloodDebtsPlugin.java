@@ -54,7 +54,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             getCommand("bd").setTabCompleter(this);
         }
         
-        getLogger().info("Plugin BloodDebts v3.5 (Usunieto Elytre) gotowy!");
+        getLogger().info("Plugin BloodDebts v4.0 (Paper 1.21.x Compatible) zostal pomyslnie wlaczony!");
     }
 
     @Override
@@ -350,7 +350,6 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
 
         gui.setItem(18, createShopItem(Material.CROSSBOW, 2, "Zabojcza Kusza"));
         gui.setItem(19, createShopItem(Material.TNT, 1, "TNT x8", 8));
-        // POPRAWKA: Usunięto Elytrę ze slotu 20 i przesunięto tutaj pozostałe itemy, aby nie było dziur
         gui.setItem(20, createShopItem(Material.FIREWORK_ROCKET, 1, "Fajerwerki x16", 16));
         gui.setItem(21, createShopItem(Material.SHULKER_SHELL, 2, "Skorupa Shulkera x2", 2));
 
