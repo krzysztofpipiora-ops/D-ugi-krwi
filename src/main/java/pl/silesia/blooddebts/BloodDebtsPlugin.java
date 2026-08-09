@@ -13,13 +13,18 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
@@ -37,12 +42,15 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
 
     private NamespacedKey debtKey;
     private NamespacedKey killerKey;
+    private NamespacedKey npcKey;
     private final String PREFIX = ChatColor.DARK_RED + "☠ " + ChatColor.RED + "[BloodDebts] " + ChatColor.RESET;
+    private final String NPC_NAME = ChatColor.DARK_RED + "" + ChatColor.BOLD + "☠ Wędrowny Handlarz Śmiercią";
 
     @Override
     public void onEnable() {
         this.debtKey = new NamespacedKey(this, "blood_debt_count");
         this.killerKey = new NamespacedKey(this, "last_killer_uuid");
+        this.npcKey = new NamespacedKey(this, "is_blood_merchant_npc");
         
         getServer().getPluginManager().registerEvents(this, this);
         
@@ -54,7 +62,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             getCommand("bd").setTabCompleter(this);
         }
         
-        getLogger().info("Plugin BloodDebts v4.0 (Paper 1.21.x Compatible) zostal pomyslnie wlaczony!");
+        getLogger().info("Plugin BloodDebts v4.5 (Z Handlarzem NPC) zostal włączony!");
     }
 
     @Override
@@ -77,6 +85,7 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
 
             if (args.length == 0) {
                 sender.sendMessage(ChatColor.GOLD + "=== System BloodDebts ===");
+                sender.sendMessage(ChatColor.YELLOW + "/bd spawnnpc" + ChatColor.GRAY + " - Respi niezniszczalnego Osadnika Handlarza");
                 sender.sendMessage(ChatColor.YELLOW + "/bd givekey [gracz] [ilosc]" + ChatColor.GRAY + " - Daje Skazony Klucz");
                 sender.sendMessage(ChatColor.YELLOW + "/bd givetoken [gracz] [ilosc]" + ChatColor.GRAY + " - Daje Token Dominacji");
                 sender.sendMessage(ChatColor.YELLOW + "/bd getsb" + ChatColor.GRAY + " - Daje Skazony Skarbiec do EQ");
@@ -85,6 +94,17 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
             }
 
             String subCommand = args[0].toLowerCase();
+
+            if (subCommand.equals("spawnnpc")) {
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage("Tylko gracz moze uzyc tej komendy!");
+                    return true;
+                }
+                Player player = (Player) sender;
+                spawnMerchantNpc(player.getLocation());
+                player.sendMessage(PREFIX + ChatColor.GREEN + "Stworzono niezniszczalnego Handlarza NPC!");
+                return true;
+            }
 
             if (subCommand.equals("getsb")) {
                 if (!(sender instanceof Player)) {
@@ -155,15 +175,44 @@ public final class BloodDebtsPlugin extends JavaPlugin implements Listener, Comm
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (command.getName().equalsIgnoreCase("bd") && sender.hasPermission("blooddebts.admin")) {
             if (args.length == 1) {
-                return Arrays.asList("givekey", "givetoken", "clear", "getsb").stream()
+                return Arrays.asList("spawnnpc", "givekey", "givetoken", "clear", "getsb").stream()
                         .filter(s -> s.startsWith(args[0].toLowerCase())).collect(Collectors.toList());
             }
-            if (args.length == 2 && !args[0].equalsIgnoreCase("getsb")) {
+            if (args.length == 2 && !args[0].equalsIgnoreCase("getsb") && !args[0].equalsIgnoreCase("spawnnpc")) {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName)
                         .filter(s -> s.toLowerCase().startsWith(args[1].toLowerCase())).collect(Collectors.toList());
             }
         }
         return new ArrayList<>();
+    }
+
+    private void spawnMerchantNpc(Location loc) {
+        Villager villager = (Villager) loc.getWorld().spawnEntity(loc, EntityType.VILLAGER);
+        villager.setCustomName(NPC_NAME);
+        villager.setCustomNameVisible(true);
+        villager.setAI(false); // Nie porusza sie i nie rozglada sam samowolnie
+        villager.setInvulnerable(true); // Nie mozna go zranic
+        villager.setCollidable(false); // Gracze go nie przepychaja
+        villager.setProfession(Villager.Profession.NITWIT); // Szatata nie-handlarza, zeby nie mial wlasnych standardowych handli
+        
+        // Oznaczenie NPC w danych wewnetrznych
+        villager.getPersistentDataContainer().set(npcKey, PersistentDataType.BYTE, (byte) 1);
+    }
+
+    @EventHandler
+    public void onNpcInteract(PlayerInteractEntityEvent event) {
+        Entity entity = event.getRightClicked();
+        if (entity.getPersistentDataContainer().has(npcKey, PersistentDataType.BYTE)) {
+            event.setCancelled(true);
+            openDeathMerchantGui(event.getPlayer());
+        }
+    }
+
+    @EventHandler
+    public void onNpcDamage(EntityDamageEvent event) {
+        if (event.getEntity().getPersistentDataContainer().has(npcKey, PersistentDataType.BYTE)) {
+            event.setCancelled(true); // Podwojna ochrona przed jakimkolwiek rodzajem obrazen
+        }
     }
 
     @EventHandler
